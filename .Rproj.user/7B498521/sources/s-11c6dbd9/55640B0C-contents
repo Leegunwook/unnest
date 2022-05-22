@@ -1,0 +1,36 @@
+library(dplyr)
+library(tidytext)
+library(janeaustenr)
+
+austen_bigrams <- austen_books () %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2)
+
+austen_bigrams
+
+
+eng_text_words <- 
+  
+  
+  
+  
+install.packages("tidytext")
+library(tidytext)
+
+
+
+eng_text_df_tokens_1 <- eng_text_df_re %>%
+  unnest_tokens(word, subtitle)
+    count(word, sort = TRUE)
+
+    s1_count <- filter(gather_episode_token, episode == 1) %>% 
+      count(word, sort = TRUE) %>% 
+      head(20)    
+    
+    
+
+eng_text_df_tokens <- eng_text_df_re %>%
+  unnest_tokens(word, subtitle) %>%
+  anti_join(stop_words)
+
+
+#################################################################

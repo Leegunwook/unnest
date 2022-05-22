@@ -1,0 +1,157 @@
+##################################################################
+##영화 오징어 게임 대본 데이터의 키워드 분석 및 토픽 모델링 분석##
+##################################################################
+
+#####################################
+##   작성 : 원은숙(2021720664)     ##
+#####################################
+
+########### 프로젝트 내용 요약 #############
+# 
+############################################
+update.packages(checkBuilt=TRUE, ask=FALSE)
+########### PRE-Condition ####################
+# 1. 필수 library 설치 및 호출
+install.packages("remotes")
+library(remotes)
+remotes::install_gitlab("mrchypark/multilinguer")
+install.packages("hash", "tau", "Sejong", "RSQLite", "devtools", "bit", "rex", "lazyeval", "htmlwidgets", "crosstalk", "promises", "later", "sessioninfo", "xopen", "bit64", "blob", "DBI", "memoise", "plogr", "covr", "DT", "rcmdcheck", "rversions", "usethis", "RWeka", "multilinguer", "rJava")
+Sys.setlocale(locale="ko_KR.utf8")
+remotes::install_github('haven-jeon/KoNLP', upgrade = "never", INSTALL_opts=c("--no-multiarch"))
+Sys.setlocale("LC_CTYPE", "ko_KR.UTF-8")
+#install.packages("backports")
+install.packages("tidyverse")
+install.packages("tidytext")
+install.packages("srt", "stringr")
+
+library(KoNLP)
+library(srt)
+library(tidytext)
+library(tidyverse)
+library(multilinguer)
+library(stringr)
+
+
+# 2. srt 자막 파일을 srt 라이브러리 적용하여 tidy형태로 read하여 변수에 저장
+f_s1 <- read_srt("/cloud/project/final/Squid.Game.S01E01.Red.Light,.Green.Light.WEBRip.Netflix.ko[cc].srt")
+f_s2 <- read_srt("/cloud/project/final/Squid.Game.S01E02.Hell.WEBRip.Netflix.ko[cc].srt")
+f_s3 <- read_srt("/cloud/project/final/Squid.Game.S01E03.The.Man.with.the.Umbrella.WEBRip.Netflix.ko[cc].srt")
+f_s4 <- read_srt("/cloud/project/final/Squid.Game.S01E04.Stick.to.the.Team.WEBRip.Netflix.ko[cc].srt")
+f_s5 <- read_srt("/cloud/project/final/Squid.Game.S01E05.A.Fair.World.WEBRip.Netflix.ko[cc].srt")
+f_s6 <- read_srt("/cloud/project/final/Squid.Game.S01E06.Gganbu.WEBRip.Netflix.ko[cc].srt")
+f_s7 <- read_srt("/cloud/project/final/Squid.Game.S01E07.VIPS.WEBRip.Netflix.ko[cc].srt")
+f_s8 <- read_srt("/cloud/project/final/Squid.Game.S01E08.Front.Man.WEBRip.Netflix.ko[cc].srt")
+f_s9 <- read_srt("/cloud/project/final/Squid.Game.S01E09.One.Lucky.Day.WEBRip.Netflix.ko[cc].srt")
+##############################################
+
+#######시각화 할 시나리오 전처리 및 데이터 병합################
+# 1) 기존 데이터에 episode 컬럼을 생성하고, 각 시나리오 번호를 부여
+#s1 <- mutate(s2, episode = 1) 
+#s2 <- mutate(s2, episode = 2) 
+#s3 <- mutate(s3, episode = 3) 
+#s4 <- mutate(s4, episode = 4) 
+#s5 <- mutate(s5, episode = 5) 
+#s6 <- mutate(s6, episode = 6) 
+#s7 <- mutate(s7, episode = 7) 
+#s8 <- mutate(s8, episode = 8) 
+#s9 <- mutate(s9, episode = 9) 
+
+
+
+####테스트가공
+str(s1)
+#대사 컬럼만 추출
+s1 <- s1$subtitle
+s1
+
+txt<-str_replace_all(txt, "\\W", " ")
+
+# 특수문자를 공백으로 치환
+s1_test1 <- str_replace_all(f_s1$subtitle, "[^가-힣]", " ") %>%
+  as_tibble() %>%
+  unnest_tokens(morp, value, token = SimplePos09) %>%
+  filter(str_detect(morp, "/n")) %>%
+  mutate(word = str_remove(morp, "/.*$")) %>%
+  filter(str_length(word)>=2)
+
+
+str(s1_test1)
+#  str_replace_all("[^가-힣]", " ") %>%
+
+# 2) 각 epoisode를 벡터 스트링으로 변형
+unnest_s1 <- str_replace_all(s1, "//W", "") %>%
+  unnest_tokens(output = word, input = subtitle)
+view(unnest_s1)
+
+text_s1 <- paste(unnest_s1, collapse = " ")
+text_s1 <- str_replace_all(s1, "//W", "")
+
+useNIADic()
+
+text11 <- extractNoun(s1_test1)
+
+
+
+
+
+
+# 2) gather_episode라는 변수를 생성하여 s1~s9의 데이터를 병합
+gather_episode <- rbind(s1, s2, s3, s4, s5, s6, s7, s8, s9)
+#view(gather_episode)
+
+# 3) 단어 빈출에 포함되면 좋지 않은 데이터를 제거
+gather_episode <- gather_episode %>% 
+  filter(!grepl("EPISODE", subtitle)) %>%
+  filter(!grepl("Subtitle translation by", subtitle)) %>%
+  filter(!is.na(subtitle))
+
+# 4) 취합된 시나리오를 단어 단위로 unnest처리하여 단어 단위로 분리
+episode_words <- gather_episode %>%
+  unnest_tokens(output = word, input = subtitle) %>%
+  count(episode,word, sort = TRUE) 
+#view(episode_words)
+
+
+
+#######에피소드 별 단어 가중치 계산################
+# 1) 취합된 데이터에서 시나리오(에피소드) 별 단어 카운트
+total_words <- episode_words %>%
+  group_by(episode) %>%
+  summarize(total = sum(n))
+#view(total_words)
+
+
+# 2) 에피소드 번호 기준 단어의 전체 개수와 각 단어별 카운트데이터를 병합
+episode_words <- left_join(episode_words, total_words)
+#view(episode_words)
+
+# 3) tf_idf 함수를 사용하여, 각각의 단어가 시나리오(에피소드) 내에서 가지는 가중치를 구함
+episode_words <- episode_words %>% 
+  bind_tf_idf(word, episode, n)
+
+# 4) 가중치(tf_idf) 높은 순서로 내림 차순 정렬하여 확인
+episode_words <- episode_words %>% 
+  arrange(desc(tf_idf))
+
+
+####### 시각화################
+# 1) 전체 단어 중 가중치 상위 20개 단어에 대한 시각화
+episode_words %>% 
+  arrange(desc(tf_idf)) %>% 
+  mutate(word = factor(word, levels = rev(unique(word)))) %>% 
+  top_n(20) %>% 
+  ggplot(aes(word, tf_idf, fill = as.factor(episode))) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+
+# 2) 시나리오(에피소드)별 가중치 상위 10개 단어에 대한 시각화
+episode_words %>% 
+  arrange(desc(tf_idf)) %>% 
+  group_by(episode) %>% 
+  top_n(10) %>% 
+  mutate(word = factor(word, levels = rev(unique(word)))) %>% 
+  ggplot(aes(word, tf_idf, fill = as.factor(episode))) +
+  geom_bar(stat = "identity", show.legend = FALSE) +
+  labs(x = NULL, y = "tf-idf") +
+  facet_wrap(~episode, ncol = 2, scales = "free") +
+  coord_flip()

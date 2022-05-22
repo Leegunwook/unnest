@@ -1,0 +1,24 @@
+install.packages("rvest")
+
+library(rvest)
+
+lego_movie <- read_html("https://www.imdb.com/title/tt1490017/")
+
+rating <- lego_movie %>%
+  html_node("strong span") %>%
+  html_text %>%
+  as.numeric()
+
+rating
+
+
+<span class="AggregateRatingButton__RatingScore-sc-1ll29m0-1 iTLWoV">7.7</span>
+  
+  
+poster
+
+
+############################# 
+### Naver News Scraping
+#############################
+
