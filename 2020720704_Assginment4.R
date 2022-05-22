@@ -1,8 +1,20 @@
+## 패키지 추가
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("tidyverse")
+
+##라이브러리 추가
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+
+
 # 1. 필요한 library 호출
 library(srt)
 library(tidytext)
 library(dplyr)
 library(tidyverse)
+
 
 # 2. srt 파일을 srt 라이브러리 적용하여 tidy형태로 sx_lee 변수에 저장
 f_s1 <- read_srt("/cloud/project/final/Squid.Game.S01E01.Red.Light,.Green.Light.WEBRip.Netflix.ko[cc].srt")
@@ -91,3 +103,9 @@ format(object.size( episode_words ), units = "auto")
 is.data.frame(episode_words)
 mode(episode_words)
 class(episode_words)
+
+
+##################################
+total_words <- 안티조인한거 추가 %>%
+  group_by(episode) %>%
+  summarize(total = sum(n))
