@@ -155,3 +155,14 @@ f_s_token %>%
   geom_bar(stat = "identity") +
   coord_flip()
 
+####################(★추가) 시나리오(에피소드)별 가중치 상위 10개 단어에 대한 시각화
+f_s_token %>% 
+  arrange(desc(tf_idf)) %>% 
+  group_by(episode) %>% 
+  top_n(10) %>% 
+  mutate(word = factor(word, levels = rev(unique(word)))) %>% 
+  ggplot(aes(word, tf_idf, fill = episode)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +
+  labs(x = NULL, y = "tf-idf") +
+  facet_wrap(~episode, ncol = 2, scales = "free") +
+  coord_flip()
